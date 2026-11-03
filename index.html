@@ -944,6 +944,8 @@ body{font-size:16px;line-height:1.5}
 .ddaychip b{font-size:1.05rem;font-variant-numeric:tabular-nums}
 .ddaychip small{margin-left:auto;font-size:.78rem;color:var(--mute);font-variant-numeric:tabular-nums}
 .ddaychip.on-cover{position:absolute;left:10px;bottom:10px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:7px 12px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.ddaychip.on-cover{left:8px;bottom:8px;background:rgba(0,0,0,.38);color:#fff;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:999px;box-shadow:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);gap:0;line-height:1.3;font-variant-numeric:tabular-nums}
+.ddaychip:not(.on-cover){font-size:.8rem;padding:6px 10px;align-self:flex-start;border-radius:999px}
 .ddaychip.on-cover small{margin-left:4px}
 </style>
 
@@ -2600,10 +2602,10 @@ function ddayInfo(){const [y,m,d]=couple.start.split("-").map(Number);const st=n
   for(let k=1;k<=60;k++){const dt=new Date(y+k,m-1,d);if(dt>=t){cand.push({l:k+"주년",dt});break;}}
   cand.sort((a,b)=>a.dt-b.dt);const nx=cand[0];const left=nx?Math.round((nx.dt-t)/864e5):0;return {n,nx,left};}
 function renderDday(){const c=$("ddayChip");if(!c)return;const {n,nx,left}=ddayInfo();
-  c.innerHTML=`<span class="dh">${ic("heart","sm")}</span><b>${n>0?n.toLocaleString()+"일째":"D-"+(1-n)}</b>${nx?`<small>${nx.l} ${left===0?"오늘! 🎉":"D-"+left}</small>`:""}`;
+  c.innerHTML=`🤍-${n>0?n.toLocaleString():0}`;c.title=nx?`${nx.l} ${left===0?"오늘! 🎉":"D-"+left}`:"";
   c.classList.toggle("on-cover",!$("coverBox").hidden);}
 $("ddayChip").onclick=()=>openSheet(sh=>{sh.innerHTML=`<div class="edbar"><button class="eye" data-x aria-label="닫기">✕</button><b>우리 만난 날</b><button class="eye ok" data-ok aria-label="저장">✓</button></div>
-  <input type="date" id="ddStart" value="${couple.start}" max="${new Date().toISOString().slice(0,10)}"><p class="muted" style="font-size:.8rem;margin:8px 0 0">만난 날을 1일로 세요. 바꾸면 둘 다에게 바로 보여요.</p>`;
+  ${(()=>{const {n,nx,left}=ddayInfo();return `<p style="margin:0 0 10px;font-weight:700">오늘 ${n}일째${nx?` · ${nx.l} ${left===0?"오늘! 🎉":"D-"+left}`:""}</p>`;})()}<input type="date" id="ddStart" value="${couple.start}" max="${new Date().toISOString().slice(0,10)}"><p class="muted" style="font-size:.8rem;margin:8px 0 0">만난 날을 1일로 세요. 바꾸면 둘 다에게 바로 보여요.</p>`;
   sh.onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.x!==undefined){closeSheet();return;}
     if(b.dataset.ok!==undefined){const v=$("ddStart").value;if(/^\d{4}-\d\d-\d\d$/.test(v)){couple={start:v};put("couple/main",couple);renderDday();}closeSheet();}};},"edsheet");
 let look={cover:""};
