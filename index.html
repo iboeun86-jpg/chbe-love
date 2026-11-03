@@ -171,30 +171,28 @@ let pendingJoin=null;
 function codeFromUrl(){const h=(location.hash||"").replace("#","").trim().toUpperCase();return /^[0-9A-F]{6}$/.test(h)?h:"";}
 async function hx(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
 async function credsOf(code,name){const k=code+"|"+name.replace(/\s+/g,"");return {email:"c"+(await hx("id|"+k)).slice(0,24)+"@chbe-love.app",password:await hx("pw|"+k+"|chbe-v1")};}
+async function credsPin(name,pin){const n=name.replace(/\s+/g,"");return {email:"u"+(await hx("u|"+n)).slice(0,24)+"@chbe-love.app",password:await hx("p|"+n+"|"+pin+"|chbe-v2")};}
 function drawWelcome(){gate.hidden=false;gate.classList.remove("splash");
   let code=codeFromUrl();try{if(!code)code=localStorage.getItem("chbe-code")||"";}catch(e){}
-  box.innerHTML=`<img class="logo" src="icon-192.png" alt=""><h1>CH🤍BE</h1><p>둘이 같이 쓰는 달력이에요.<br>이름만 쓰면 바로 들어가요.</p>
-  <input id="agCode" placeholder="초대 코드 6자리" maxlength="6" autocapitalize="characters" value="${escH(code)}" style="text-align:center;letter-spacing:.2em;font-weight:700${code?";display:none":""}">
-  <input id="agName" placeholder="이름 (예: 유창훈)" maxlength="20" autocomplete="nickname">
-  <button id="agGo">시작하기</button>
-  <p style="font-size:.8rem">다른 폰에서 다시 들어올 때도 같은 이름을 쓰면 내 기록이 그대로 있어요.</p>
-  <button class="link" id="agMail">이메일 계정으로 들어가기</button>
+  box.innerHTML=`<img class="logo" src="icon-192.png" alt=""><h1>CH🤍BE</h1><p>이름과 비밀번호를 넣어 주세요</p>
+  <input id="agName" placeholder="이름" maxlength="20" autocomplete="username">
+  <input id="agPin" type="password" inputmode="numeric" placeholder="비밀번호" maxlength="12" autocomplete="current-password" style="letter-spacing:.3em;text-align:center">
+  <button id="agGo">들어가기</button>
   <div class="msg" id="agMsg"></div>`;
-  $g("agMail").onclick=()=>{mode="login";drawLogin();};
-  const go=async()=>{const c=$g("agCode").value.trim().toUpperCase(),n=$g("agName").value.trim();
-    if(!/^[0-9A-F]{6}$/.test(c)){$g("agCode").style.display="";showMsg("초대 코드 6자리를 넣어 주세요");return;}
-    if(!n){showMsg("이름을 써 주세요");return;}
+  const go=async()=>{const n=$g("agName").value.trim(),pin=$g("agPin").value.trim();
+    if(!n){showMsg("이름을 써 주세요");return;} if(!pin){showMsg("비밀번호를 넣어 주세요");return;}
     $g("agGo").disabled=true;showMsg("들어가는 중…",true);
-    try{const cr=await credsOf(c,n);pendingJoin={code:c,name:n};try{localStorage.setItem("chbe-code",c);}catch(e){}
-      let r=await sb.auth.signInWithPassword(cr);
-      if(r.error){r=await sb.auth.signUp({email:cr.email,password:cr.password,options:{data:{name:n}}});if(r.error)throw r.error;}
+    try{const cr=await credsPin(n,pin);let r=await sb.auth.signInWithPassword(cr);
+      if(r.error){
+        if(code&&/^[0-9A-F]{6}$/.test(code)){pendingJoin={code,name:n};r=await sb.auth.signUp({email:cr.email,password:cr.password,options:{data:{name:n}}});if(r.error)throw r.error;}
+        else{showMsg("이름이나 비밀번호가 맞지 않아요");$g("agGo").disabled=false;return;}}
       if(r.data&&r.data.session&&!me)await afterLogin(r.data.session);
     }catch(e){pendingJoin=null;showMsg(e.message);$g("agGo").disabled=false;}};
-  $g("agGo").onclick=go;$g("agName").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+  $g("agGo").onclick=go;$g("agPin").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
 }
 async function joinPending(){const pj=pendingJoin;pendingJoin=null;
   const {data,error}=await sb.rpc("join_space",{p_code:pj.code,p_name:pj.name});
-  if(error){await sb.auth.signOut();me=null;drawWelcome();showMsg(/not_found/.test(error.message)?"없는 초대 코드예요. 받은 링크를 다시 확인해 주세요":/full/.test(error.message)?"이 달력은 자리가 꽉 찼어요. 처음 들어갈 때 쓴 이름을 똑같이 써 주세요":error.message);return;}
+  if(error){await sb.auth.signOut();me=null;drawWelcome();showMsg(/not_found/.test(error.message)?"없는 초대 코드예요":/full/.test(error.message)?"이름이나 비밀번호가 맞지 않아요":error.message);return;}
   await enterSpace(data);}
 async function importSeed(spaceId){
   const seed=await (await fetch("seed.json",{cache:"no-store"})).json();
@@ -230,7 +228,7 @@ function addAcctPanel(){
     <p class="muted" id="acIconMsg" style="margin:6px 0 0;font-size:.78rem;min-height:1em"></p>`;
   v.prepend(d);
   $g("acIcon").src=$g("appleIcon").href;
-  $g("acCopy").onclick=async()=>{const t=`CH🤍BE 같이 쓰자!\n${location.origin+location.pathname}#${space.invite_code}\n링크 열고 이름만 쓰면 바로 들어와져 (초대 코드 ${space.invite_code})`;
+  $g("acCopy").onclick=async()=>{const t=`CH🤍BE 같이 쓰자!\n${location.origin+location.pathname}#${space.invite_code}\n링크 열고 이름이랑 비밀번호 넣으면 돼`;
     try{await navigator.clipboard.writeText(t);$g("acMsg").textContent="링크 복사됨 · 카톡에 붙여 넣기";}catch(e){$g("acMsg").textContent="코드: "+space.invite_code;}};
   if($g("acIconFile"))$g("acIconFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;await uploadIcon(f,$g("acIconMsg"));$g("acIcon").src=$g("appleIcon").href;};
   $g("acOut").onclick=logout;
