@@ -260,6 +260,15 @@ async function pushInit(){
   const hr=document.querySelector(".hdr-r");if(hr&&!$g("bellBtn")){const b=document.createElement("button");b.id="bellBtn";b.className="nav-ic";b.onclick=bellTap;hr.insertBefore(b,$g("editBtn"));}
   if(canPush()){try{const r=await navigator.serviceWorker.register("sw.js");const s=await r.pushManager.getSubscription();if(s&&Notification.permission==="granted")await saveSub(s);}catch(e){}}
   bellPaint();
+  // 홈 화면 앱에서 알림이 아직 꺼져 있으면 위에 크게 알려요
+  try{const sub=await pushSub().catch(()=>null);const off=!(sub&&Notification.permission==="granted");
+    if(off&&(standalone||!isIOS)&&canPush()&&!$g("pushAsk")){const d=document.createElement("div");d.id="pushAsk";
+      const denied=Notification.permission==="denied";
+      d.innerHTML=denied?`<span>🔕 알림이 막혀 있어요. 아이폰 <b>설정 → 알림 → CH🤍BE</b>에서 허용해 주세요</span><button class="px" aria-label="닫기">✕</button>`
+        :`<span>🔔 알림이 꺼져 있어요. 켜야 일정·메모 알림이 와요</span><button class="pon">알림 켜기</button><button class="px" aria-label="닫기">✕</button>`;
+      d.onclick=async e=>{if(e.target.closest(".px")){d.remove();return;}if(e.target.closest(".pon")){await bellTap();const s2=await pushSub().catch(()=>null);if(s2&&Notification.permission==="granted")d.remove();}};
+      const w=document.querySelector(".wrap");if(w)w.insertBefore(d,w.firstChild);}
+  }catch(e){}
 }
 
 /* ---------- 사진 편집기: 확대·축소 · 이동 · 자르기 · 회전 ---------- */
@@ -961,6 +970,10 @@ body{font-size:16px;line-height:1.5}
 .cin{display:flex;gap:6px;align-items:center}.cin input{flex:1;min-width:0;border-radius:999px!important;padding:8px 12px!important;background:var(--bg)!important;border:0!important}
 .cin .csend{width:36px;height:36px;flex:none;border:0;border-radius:50%;background:var(--btn);color:var(--btn-ink);display:grid;place-items:center}
 .memo.mine .mrx .rx,.memo.mine .mrx .cbtn,.memo.mine .cin input{background:var(--card)!important}
+
+#pushAsk{display:flex;align-items:center;gap:8px;background:#103A5C;color:#fff;border-radius:14px;padding:10px 12px;font-size:.84rem;line-height:1.4}
+#pushAsk span{flex:1}#pushAsk .pon{border:0;background:#BFE4FF;color:#103A5C;font-weight:700;border-radius:10px;padding:8px 10px;white-space:nowrap}
+#pushAsk .px{border:0;background:none;color:#fff;opacity:.7;padding:4px}
 </style>
 
 <div class="wrap">
